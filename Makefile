@@ -9,6 +9,7 @@ CFLAGS=-Iinclude/
 TARGETS=$(addprefix lib, $(ALGORITHMS))
 DIR=$(addprefix obj/, $(ALGORITHMS))
 SOS=$(TARGETS:=.so)
+SOS=$(TARGETS:=.a)
 SHS=$(TARGETS:=.sh)
 export COND_VAR=1
 
@@ -23,6 +24,9 @@ no_cond_var: all
 
 %.so: obj/CLHT/libclht.a obj/
 	mkdir -p lib/
+	$(MAKE) -C src/ ../lib/$@
+
+%.a: obj/CLHT/libclht.a obj/
 	$(MAKE) -C src/ ../lib/$@
 
 obj/:

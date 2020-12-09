@@ -166,7 +166,7 @@ static lock_transparent_mutex_t *ht_lock_get(pthread_mutex_t *mutex) {
     return impl;
 }
 #endif
-
+/*
 int (*REAL(pthread_mutex_init))(pthread_mutex_t *mutex,
                                 const pthread_mutexattr_t *attr)
     __attribute__((aligned(L_CACHE_LINE_SIZE)));
@@ -174,12 +174,12 @@ int (*REAL(pthread_mutex_destroy))(pthread_mutex_t *mutex)
     __attribute__((aligned(L_CACHE_LINE_SIZE)));
 int (*REAL(pthread_mutex_lock))(pthread_mutex_t *mutex)
 	__attribute__((aligned(L_CACHE_LINE_SIZE)));
+int (*REAL(pthread_mutex_unlock))(pthread_mutex_t *mutex)
+	__attribute__((aligned(L_CACHE_LINE_SIZE)));
 int (*REAL(pthread_mutex_timedlock))(pthread_mutex_t *mutex,
 									 const struct timespec *abstime)
 	__attribute__((aligned(L_CACHE_LINE_SIZE)));
 int (*REAL(pthread_mutex_trylock))(pthread_mutex_t *mutex)
-	__attribute__((aligned(L_CACHE_LINE_SIZE)));
-int (*REAL(pthread_mutex_unlock))(pthread_mutex_t *mutex)
 	__attribute__((aligned(L_CACHE_LINE_SIZE)));
 int (*REAL(pthread_create))(pthread_t *thread, const pthread_attr_t *attr,
 							void *(*start_routine)(void *), void *arg)
@@ -233,6 +233,7 @@ int (*REAL(pthread_rwlock_trywrlock))(pthread_rwlock_t *lock)
 	__attribute__((aligned(L_CACHE_LINE_SIZE)));
 int (*REAL(pthread_rwlock_unlock))(pthread_rwlock_t *lock)
 	__attribute__((aligned(L_CACHE_LINE_SIZE)));
+*/
 
 #if CLEANUP_ON_SIGNAL
 static void signal_exit(int signo);
@@ -292,7 +293,7 @@ static void __attribute__((constructor)) REAL(interpose_init)(void) {
     }
 #endif
 
-    LOAD_FUNC(pthread_mutex_init, 1, FCT_LINK_SUFFIX);
+    /*LOAD_FUNC(pthread_mutex_init, 1, FCT_LINK_SUFFIX);
     LOAD_FUNC(pthread_mutex_destroy, 1, FCT_LINK_SUFFIX);
     LOAD_FUNC(pthread_mutex_lock, 1, FCT_LINK_SUFFIX);
     LOAD_FUNC(pthread_mutex_timedlock, 1, FCT_LINK_SUFFIX);
@@ -321,7 +322,7 @@ static void __attribute__((constructor)) REAL(interpose_init)(void) {
     LOAD_FUNC(pthread_rwlock_timedwrlock, 1, FCT_LINK_SUFFIX);
     LOAD_FUNC(pthread_rwlock_tryrdlock, 1, FCT_LINK_SUFFIX);
     LOAD_FUNC(pthread_rwlock_trywrlock, 1, FCT_LINK_SUFFIX);
-    LOAD_FUNC(pthread_rwlock_unlock, 1, FCT_LINK_SUFFIX);
+    LOAD_FUNC(pthread_rwlock_unlock, 1, FCT_LINK_SUFFIX);*/
 
     __sync_synchronize();
     init_spinlock = 2;
@@ -405,7 +406,7 @@ static void *lp_start_routine(void *_arg) {
     return res;
 }
 
-int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
+int amy_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
                    void *(*start_routine)(void *), void *arg) {
     DEBUG_PTHREAD("[p] pthread_create\n");
     struct routine *r = malloc(sizeof(struct routine));
@@ -416,7 +417,56 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
     return REAL(pthread_create)(thread, attr, lp_start_routine, r);
 }
 
-int pthread_mutex_init(pthread_mutex_t *mutex,
+int amy_pthread_mutex_init(pthread_mutex_t *mutex,
+                       const pthread_mutexattr_t *attr) {
+    DEBUG_PTHREAD("[p] pthread_mutex_init\n");
+#if !NO_INDIRECTION
+    ht_lock_create(mutex, attr);
+    return 0;
+#else
+    return REAL(pthread_mutex_init)(mutex, attr);
+#endif
+}
+
+int amy_pthread_mutex_destroy(pthread_mutex_t *mutex) {
+    DEBUG_PTHREAD("[p] pthread_mutex_destroy\n");
+#if !NO_INDIRECTION
+    lock_transparent_mutex_t *impl = (lock_transparent_mutex_t *)clht_remove(
+        pthread_to_lock, (clht_addr_t)mutex);
+    if (impl != NULL) {
+        lock_mutex_destroy(impl->lock_lock);
+        free(impl);
+    }
+
+    return REAL(pthread_mutex_destroy)(mutex);
+#else
+    return lock_mutex_destroy(mutex);
+#endif
+}
+
+int amy_pthread_mutex_lock(pthread_mutex_t *mutex) {
+    DEBUG_PTHREAD("[p] pthread_mutex_lock\n");
+#if !NO_INDIRECTION
+    lock_transparent_mutex_t *impl = ht_lock_get(mutex);
+    return lock_mutex_lock(impl->lock_lock, get_node(impl));
+#else
+    return lock_mutex_lock(mutex, NULL);
+#endif
+}
+
+int amy_pthread_mutex_unlock(pthread_mutex_t *mutex) {
+    DEBUG_PTHREAD("[p] pthread_mutex_unlock\n");
+#if !NO_INDIRECTION
+    lock_transparent_mutex_t *impl = ht_lock_get(mutex);
+    lock_mutex_unlock(impl->lock_lock, get_node(impl));
+    return 0;
+#else
+    lock_mutex_unlock(mutex, NULL);
+    return 0;
+#endif
+}
+
+/*int pthread_mutex_init(pthread_mutex_t *mutex,
                        const pthread_mutexattr_t *attr) {
     DEBUG_PTHREAD("[p] pthread_mutex_init\n");
 #if !NO_INDIRECTION
@@ -441,9 +491,9 @@ int pthread_mutex_destroy(pthread_mutex_t *mutex) {
 #else
     return lock_mutex_destroy(mutex);
 #endif
-}
+}*/
 
-int pthread_mutex_lock(pthread_mutex_t *mutex) {
+/*int pthread_mutex_lock(pthread_mutex_t *mutex) {
     DEBUG_PTHREAD("[p] pthread_mutex_lock\n");
 #if !NO_INDIRECTION
     lock_transparent_mutex_t *impl = ht_lock_get(mutex);
@@ -451,9 +501,9 @@ int pthread_mutex_lock(pthread_mutex_t *mutex) {
 #else
     return lock_mutex_lock(mutex, NULL);
 #endif
-}
+}*/
 
-int pthread_mutex_timedlock(pthread_mutex_t *mutex,
+/*int pthread_mutex_timedlock(pthread_mutex_t *mutex,
                             const struct timespec *abstime) {
     assert(0 && "Timed locks not supported");
 }
@@ -466,9 +516,9 @@ int pthread_mutex_trylock(pthread_mutex_t *mutex) {
 #else
     return lock_mutex_trylock(mutex, NULL);
 #endif
-}
+}*/
 
-int pthread_mutex_unlock(pthread_mutex_t *mutex) {
+/*int pthread_mutex_unlock(pthread_mutex_t *mutex) {
     DEBUG_PTHREAD("[p] pthread_mutex_unlock\n");
 #if !NO_INDIRECTION
     lock_transparent_mutex_t *impl = ht_lock_get(mutex);
@@ -478,21 +528,21 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex) {
     lock_mutex_unlock(mutex, NULL);
     return 0;
 #endif
-}
+}*/
 
-int __pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
+int amy_pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr) {
     DEBUG_PTHREAD("[p] pthread_cond_init\n");
     return lock_cond_init(cond, attr);
 }
-__asm__(".symver __pthread_cond_init,pthread_cond_init@@" GLIBC_2_3_2);
+//__asm__(".symver __pthread_cond_init,pthread_cond_init@@" GLIBC_2_3_2);
 
-int __pthread_cond_destroy(pthread_cond_t *cond) {
+int amy_pthread_cond_destroy(pthread_cond_t *cond) {
     DEBUG_PTHREAD("[p] pthread_cond_destroy\n");
     return lock_cond_destroy(cond);
 }
-__asm__(".symver __pthread_cond_destroy,pthread_cond_destroy@@" GLIBC_2_3_2);
+//__asm__(".symver __pthread_cond_destroy,pthread_cond_destroy@@" GLIBC_2_3_2);
 
-int __pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
+/*int __pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
                              const struct timespec *abstime) {
     DEBUG_PTHREAD("[p] pthread_cond_timedwait\n");
 #if !NO_INDIRECTION
@@ -504,8 +554,8 @@ int __pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
 }
 __asm__(
     ".symver __pthread_cond_timedwait,pthread_cond_timedwait@@" GLIBC_2_3_2);
-
-int __pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
+*/
+int amy_pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
     DEBUG_PTHREAD("[p] pthread_cond_wait\n");
 #if !NO_INDIRECTION
     lock_transparent_mutex_t *impl = ht_lock_get(mutex);
@@ -514,20 +564,20 @@ int __pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex) {
     return lock_cond_wait(cond, mutex, NULL);
 #endif
 }
-__asm__(".symver __pthread_cond_wait,pthread_cond_wait@@" GLIBC_2_3_2);
+//__asm__(".symver __pthread_cond_wait,pthread_cond_wait@@" GLIBC_2_3_2);
 
-int __pthread_cond_signal(pthread_cond_t *cond) {
+int amy_pthread_cond_signal(pthread_cond_t *cond) {
     DEBUG_PTHREAD("[p] pthread_cond_signal\n");
     return lock_cond_signal(cond);
 }
-__asm__(".symver __pthread_cond_signal,pthread_cond_signal@@" GLIBC_2_3_2);
+//__asm__(".symver __pthread_cond_signal,pthread_cond_signal@@" GLIBC_2_3_2);
 
-int __pthread_cond_broadcast(pthread_cond_t *cond) {
+int amy_pthread_cond_broadcast(pthread_cond_t *cond) {
     DEBUG_PTHREAD("[p] pthread_cond_broadcast\n");
     return lock_cond_broadcast(cond);
 }
-__asm__(
-    ".symver __pthread_cond_broadcast,pthread_cond_broadcast@@" GLIBC_2_3_2);
+//__asm__(
+//    ".symver __pthread_cond_broadcast,pthread_cond_broadcast@@" GLIBC_2_3_2);
 
 
 
@@ -537,7 +587,7 @@ __asm__(
 
 
 
-
+/*
 // Spinlocks
 int pthread_spin_init(pthread_spinlock_t *spin,
                       int pshared) {
@@ -697,4 +747,4 @@ int pthread_rwlock_unlock(pthread_rwlock_t *rwlock) {
 #else
     assert(0 && "rwlock not supported without indirection");
 #endif
-}
+}*/

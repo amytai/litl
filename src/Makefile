@@ -20,3 +20,7 @@ CFLAGS=-I../include/ -I../obj/CLHT/include/ -I../obj/CLHT/external/include/ -fPI
 .SECONDEXPANSION:
 ../lib/lib%.so: ../obj/%/interpose.o ../obj/%/utils.o $$(subst algo,%,../obj/algo/algo.o)
 	$(CC) -shared -o $@ $^ $(LDFLAGS)
+
+SECONDEXPANSION:
+../lib/lib%.a: ../obj/%/interpose.o ../obj/%/utils.o $$(subst algo,%,../obj/algo/algo.o)
+	ar crus $@ $^

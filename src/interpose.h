@@ -34,7 +34,7 @@
 #define PASTER(x, y) real_##x##_##y
 #define EVALUATOR(x, y) PASTER(x, y)
 
-#define REAL(name) EVALUATOR(name, FCT_LINK_SUFFIX)
+#define REAL(name) name //EVALUATOR(name, FCT_LINK_SUFFIX)
 #define S(_) #_
 
 #define LOAD_FUNC(name, E, pre)                                                \
@@ -53,7 +53,7 @@
 
 #define GLIBC_2_3_2 "GLIBC_2.3.2"
 
-extern int (*REAL(pthread_mutex_init))(pthread_mutex_t *mutex,
+/*extern int (*REAL(pthread_mutex_init))(pthread_mutex_t *mutex,
                                        const pthread_mutexattr_t *attr);
 extern int (*REAL(pthread_mutex_destroy))(pthread_mutex_t *mutex);
 extern int (*REAL(pthread_mutex_lock))(pthread_mutex_t *mutex);
@@ -95,6 +95,6 @@ extern int (*REAL(pthread_rwlock_timedrwlock))(pthread_rwlock_t *mutex,
 extern int (*REAL(pthread_rwlock_tryrdlock))(pthread_rwlock_t *lock);
 extern int (*REAL(pthread_rwlock_trywrlock))(pthread_rwlock_t *lock);
 extern int (*REAL(pthread_rwlock_unlock))(pthread_rwlock_t *lock);
-
+*/
 // rdwr locks
 #endif // __INTERPOSE_H__
