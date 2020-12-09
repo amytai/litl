@@ -280,7 +280,8 @@ int cbomcs_mutex_destroy(cbomcs_mutex_t *lock) {
 
 int cbomcs_cond_init(cbomcs_cond_t *cond, const pthread_condattr_t *attr) {
 #if COND_VAR
-    return REAL(pthread_cond_init)(cond, attr);
+    int ret = REAL(pthread_cond_init)(cond, attr);
+    printf("int magic: %u\n", *((unsigned int*) cond));
 #else
     fprintf(stderr, "Error cond_var not supported.");
     assert(0);
@@ -297,12 +298,15 @@ int cbomcs_cond_timedwait(cbomcs_cond_t *cond, cbomcs_mutex_t *lock,
           lock, &(lock->posix_lock));
     DEBUG_PTHREAD("[%d] Cond posix = %p lock = %p\n", cur_thread_id, cond,
                   &lock->posix_lock);
+    printf("timedwait magic: %ud\n", *((unsigned int*) cond));
 
     if (ts)
         res = REAL(pthread_cond_timedwait)(cond, &lock->posix_lock, ts);
     else
         res = REAL(pthread_cond_wait)(cond, &lock->posix_lock);
+    
 
+    printf("cond: %x, lock: %x\n", cond, &lock->posix_lock);
     if (res != 0 && res != ETIMEDOUT) {
         fprintf(stderr, "Error on cond_{timed,}wait %d\n", res);
         assert(0);

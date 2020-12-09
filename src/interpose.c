@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -98,6 +99,7 @@
 // The NO_INDIRECTION flag allows disabling the pthread-to-lock hash table
 // and directly calling the specific lock function
 // See empty.c for example.
+
 
 unsigned int last_thread_id;
 __thread unsigned int cur_thread_id;
@@ -420,6 +422,10 @@ int amy_pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 int amy_pthread_mutex_init(pthread_mutex_t *mutex,
                        const pthread_mutexattr_t *attr) {
     DEBUG_PTHREAD("[p] pthread_mutex_init\n");
+    /*if (init_spinlock != 2) {
+        REAL(interpose_init)();
+    }*/
+
 #if !NO_INDIRECTION
     ht_lock_create(mutex, attr);
     return 0;

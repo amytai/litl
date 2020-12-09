@@ -27,6 +27,7 @@ no_cond_var: all
 	$(MAKE) -C src/ ../lib/$@
 
 %.a: obj/CLHT/libclht.a obj/
+	mkdir -p lib/
 	$(MAKE) -C src/ ../lib/$@
 
 obj/:

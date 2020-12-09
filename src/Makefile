@@ -1,7 +1,8 @@
 include ../Makefile.config
 
-LDFLAGS=-L../obj/CLHT/external/lib -L../obj/CLHT -Wl,--whole-archive -Wl,--version-script=interpose.map -lsspfd -lssmem -lclht -Wl,--no-whole-archive  -lrt -lm -ldl -lpapi -m64 -pthread
-CFLAGS=-I../include/ -I../obj/CLHT/include/ -I../obj/CLHT/external/include/ -fPIC -Wall -Werror -O3 -g
+CC=x86_64-rumprun-netbsd-gcc
+LDFLAGS=-L../obj/CLHT/external/lib -L../obj/CLHT -Wl,--whole-archive  -lsspfd -lssmem -lclht -Wl,--no-whole-archive  -lm -lpapi -m64 -lpthread
+CFLAGS=-I../include/ -I../obj/CLHT/include/ -I../obj/CLHT/external/include/ -D_GNU_SOURCE -fPIC -Wall -Werror -O3 -g -D_REENTRANT -DOS_NETBSD -DLEVELDB_PLATFORM_POSIX -O2 -DNDEBUG
 
 # Keep objects files
 .PRECIOUS: %.o
