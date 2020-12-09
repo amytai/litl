@@ -37,7 +37,7 @@ $(DIR):
 	mkdir -p $@
 
 obj/CLHT:
-	cd obj/ && ([ -d CLHT ] || git clone https://github.com/HugoGuiroux/CLHT.git)
+	cd obj/ && ([ -d CLHT ] || git clone https://github.com/amytai/CLHT.git)
 	mkdir -p obj/CLHT/external/lib/
 
 obj/CLHT/libclht.a: obj/CLHT obj/CLHT/external/lib/libssmem.a obj/CLHT/external/lib/libsspfd.a
@@ -45,7 +45,7 @@ obj/CLHT/libclht.a: obj/CLHT obj/CLHT/external/lib/libssmem.a obj/CLHT/external/
 
 obj/CLHT/external/lib/libssmem.a: obj/CLHT
 	cd obj/CLHT/ && \
-	([ -d ssmem ] || git clone https://github.com/HugoGuiroux/ssmem.git) && \
+	([ -d ssmem ] || git clone https://github.com/amytai/ssmem.git) && \
 	cd ssmem && \
 	make libssmem.a && \
 	cp libssmem.a ../external/lib/ && \
