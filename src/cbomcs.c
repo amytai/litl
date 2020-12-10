@@ -162,11 +162,11 @@ static int __backoff_mutex_trylock(backoff_ttas_t *impl) {
 cbomcs_mutex_t *cbomcs_mutex_create(const pthread_mutexattr_t *attr) {
     cbomcs_mutex_t *impl =
         (cbomcs_mutex_t *)alloc_cache_align(sizeof(cbomcs_mutex_t));
+    memset(impl, 0, sizeof *impl);
 #if COND_VAR
     REAL(pthread_mutex_init)(&impl->posix_lock, attr);
 #endif
 
-    memset(impl, 0, sizeof *impl);
 
     impl->top_lock.spin_lock = UNLOCKED;
 
@@ -281,7 +281,8 @@ int cbomcs_mutex_destroy(cbomcs_mutex_t *lock) {
 int cbomcs_cond_init(cbomcs_cond_t *cond, const pthread_condattr_t *attr) {
 #if COND_VAR
     int ret = REAL(pthread_cond_init)(cond, attr);
-    printf("int magic: %u\n", *((unsigned int*) cond));
+    //printf("int magic: %u, attr: %x\n", *((unsigned int*) cond), attr);
+    return ret;
 #else
     fprintf(stderr, "Error cond_var not supported.");
     assert(0);
@@ -298,7 +299,8 @@ int cbomcs_cond_timedwait(cbomcs_cond_t *cond, cbomcs_mutex_t *lock,
           lock, &(lock->posix_lock));
     DEBUG_PTHREAD("[%d] Cond posix = %p lock = %p\n", cur_thread_id, cond,
                   &lock->posix_lock);
-    printf("timedwait magic: %ud\n", *((unsigned int*) cond));
+    //printf("timedwait magic: %x\n", *((unsigned int*) cond));
+    //printf("mutex magic: %x\n", *((unsigned int*) (&lock->posix_lock)));
 
     if (ts)
         res = REAL(pthread_cond_timedwait)(cond, &lock->posix_lock, ts);
@@ -306,7 +308,7 @@ int cbomcs_cond_timedwait(cbomcs_cond_t *cond, cbomcs_mutex_t *lock,
         res = REAL(pthread_cond_wait)(cond, &lock->posix_lock);
     
 
-    printf("cond: %x, lock: %x\n", cond, &lock->posix_lock);
+    //printf("cond: %x, lock: %x\n", cond, &lock->posix_lock);
     if (res != 0 && res != ETIMEDOUT) {
         fprintf(stderr, "Error on cond_{timed,}wait %d\n", res);
         assert(0);
